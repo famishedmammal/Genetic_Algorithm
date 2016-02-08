@@ -22,10 +22,10 @@ public class mainSnake {
 	
 	public static void main(String[] args) {
 		
-		int renderSpeed = 10;
-		int totalEnemies = 15;
+		int renderSpeed = 50;
+		int totalEnemies = 3;
 		int respawnTimeMS = 2000;
-		boardSize = new Dimension(60,60);
+		boardSize = new Dimension(20,20);
 		windowSize = new Dimension(600, 600);
 		display = new Display();
 		foodPoint = getRandomPos();
@@ -34,7 +34,7 @@ public class mainSnake {
 		for(int i=0; i<totalEnemies; i++) 
 			spawnSnake(true);
 		Point spawn = getRandomPos();
-		snakeInstance smart = new AI_smart(spawn.x, spawn.y, Color.BLUE);
+		snakeInstance smart = new AI_smart(spawn.x, spawn.y, new Color(70, 70, 255), 5);
 		allSnakes.add(smart);
 		
 		while(true)
@@ -53,12 +53,11 @@ public class mainSnake {
 				if (currentTime >= nextFrame)
 					break;
 			}
+			
 			bakedMap = bakeInstances();
 			for(int i=0; i<allSnakes.size(); i++) {
 				allSnakes.get(i).tickSnake();
-				allSnakes.get(i).expand = true;
 			}
-				
 			renderFrame();
 			for(int i=0; i<allSnakes.size(); i++) {
 				if (allSnakes.get(i).checkAlive() == false) {
@@ -77,9 +76,9 @@ public class mainSnake {
 		if (random)
 			spawn = getRandomPos();
 		else
-			spawn = new Point(1,1);
-		snakeInstance dumb = new AI_simple(spawn.x, spawn.y, Color.GRAY);
-		allSnakes.add(dumb);			
+			spawn = new Point(4,4);
+		snakeInstance naive = new AI_simple(spawn.x, spawn.y, Color.GRAY, 10);
+		allSnakes.add(naive);			
 	}
 	
 	/*
@@ -120,11 +119,20 @@ public class mainSnake {
 			renderCube(g, 3, i, 0, Color.DARK_GRAY);
 			renderCube(g, 3, boardSize.width-1, i, Color.DARK_GRAY);
 			renderCube(g, 3, 0, i, Color.DARK_GRAY);
+			renderCube(g, 3, i, boardSize.height-2, Color.DARK_GRAY);
+			renderCube(g, 3, i, 1, Color.DARK_GRAY);
+			renderCube(g, 3, boardSize.width-2, i, Color.DARK_GRAY);
+			renderCube(g, 3, 1, i, Color.DARK_GRAY);
 		}
-		for(int j=0; j<allSnakes.size(); j++)
+		for(int j=0; j<allSnakes.size(); j++) 
+		{
 			for(int i=0; i<allSnakes.get(j).bodyPoints.size(); i++)
 				renderCube(g, 1, allSnakes.get(j).bodyPoints.get(i).x, allSnakes.get(j).bodyPoints.get(i).y, allSnakes.get(j).color);
-		renderCube(g, 2, foodPoint.x, foodPoint.y, Color.BLACK);
+			Color c = new Color(allSnakes.get(j).color.getRed()-70, allSnakes.get(j).color.getGreen()-70, allSnakes.get(j).color.getBlue()-70);
+			renderCube(g, 1, allSnakes.get(j).bodyPoints.get(0).x, allSnakes.get(j).bodyPoints.get(0).y, c);
+		}
+
+		renderCube(g, 2, foodPoint.x, foodPoint.y, Color.GREEN);
 
 	}
 	
@@ -159,9 +167,11 @@ public class mainSnake {
 		
 		for(int i=0; i<boardSize.width; i++) {
 			map[i][boardSize.height-1] = map[i][0] = true;
+			map[i][boardSize.height-2] = map[i][1] = true;
 		}
 		for(int i=0; i<boardSize.height; i++) {
 			map[boardSize.width-1][i] = map[0][i] = true;
+			map[boardSize.width-2][i] = map[1][i] = true;
 		}
 		
 		for(int j=0; j<allSnakes.size(); j++)
