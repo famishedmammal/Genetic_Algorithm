@@ -1,11 +1,12 @@
 import java.awt.Color;
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Stack;
 
 public class AI_smart extends snakeInstance {
 	
-	public AI_smart(int x, int y, Color color_in) {
-		super(x, y, color_in);
+	public AI_smart(int x, int y, Color color_in, int length_in) {
+		super(x, y, color_in, length_in);
 	}
 
 	public void calculateMove()
@@ -16,24 +17,29 @@ public class AI_smart extends snakeInstance {
 		float[] scores = new float[4];
 		scores[0] = scores[1] = scores[2] = scores[3] = 0;
 		
-		// Calculate each heuristic
+		// Safety heuristics
 		float[] emptinessScores = emptinessHeuristic_calc(xx, yy); // BFS, find "emptiest" area
 		float[] wallflowerScores = wallflowerHeuristic_calc(xx, yy); // DFS, find area best for coiling
-		//float[] repulsionScores =
-		//float[] hungerScores = 
+		float[] isolationScores = isolationHeuristic_calc(xx, yy); // A*, find shortest path to tile farthest away from snake heads
+		//float[] repulsionScores = hungerHeuristic_calc(xx, yy); // square root, repulse away from snake heads
 		
-		// Weigh each heuristic
+		// Aggressive heuristics
+		float[] hungerScores = hungerHeuristic_calc(xx, yy); // A*, find shortest path to food
+		//float[] aggressionScores = aggressionHeuristic_calc(xx, yy); // attack player if necessary
+		
+		// Weigh each heuristic. Note to self : each one should work flawlessly independently
 		for(int i=0; i<4; i++) 
 		{
 			scores[i] =
-					((emptinessScores[i]/emptinessScores[4]) * 1.0f) +
-					((wallflowerScores[i]/wallflowerScores[4]) * 1.0f);
+					((emptinessScores[i]/emptinessScores[4]) * 0.9f) + //0.9
+					((wallflowerScores[i]/wallflowerScores[4]) * 0.1f) + //0.0
+					((isolationScores[i]) * 1.0f) + //1.0
+					((hungerScores[i]) * 0.0f); //0.0
 		}
 		
 		// Determine what to do
-		System.out.println(scores[0]+","+scores[1]+","+scores[2]+","+scores[3]);
 		int toDo = 0;
-		float maxScore = 0;
+		float maxScore = Float.MIN_VALUE;
 		for(int i=0; i<4; i++) 
 		{
 			if (scores[i] > maxScore) {
@@ -43,16 +49,131 @@ public class AI_smart extends snakeInstance {
 		}
 		switch(toDo) 
 		{
-		case 1:
-			bodyPoints.get(0).y ++; return;
-		case 0:
-			bodyPoints.get(0).x ++; return;
-		case 3:
-			bodyPoints.get(0).y --; return;
-		case 2:
-			bodyPoints.get(0).x --; return;
+			case 1:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y+1]) {bodyPoints.get(0).y++; return;} break;
+			case 0:	if (!mainSnake.bakedMap[bodyPoints.get(0).x+1][bodyPoints.get(0).y]) {bodyPoints.get(0).x++; return;} break;
+			case 3:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y-1]) {bodyPoints.get(0).y--; return;} break;
+			case 2:	if (!mainSnake.bakedMap[bodyPoints.get(0).x-1][bodyPoints.get(0).y]) {bodyPoints.get(0).x--; return;} break;
 		}
+		
+		// Last resort
+		System.out.println("(smart) confused!");
+		if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y+1])
+			bodyPoints.get(0).y++;
+		else if (!mainSnake.bakedMap[bodyPoints.get(0).x+1][bodyPoints.get(0).y])
+			bodyPoints.get(0).x++;
+		else if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y-1])
+			bodyPoints.get(0).y--;
+		else if (!mainSnake.bakedMap[bodyPoints.get(0).x-1][bodyPoints.get(0).y])
+			bodyPoints.get(0).x--;
+		else {
+			System.out.println("(smart) GG");
+			bodyPoints.get(0).x--;
+		}
+		
 	}
+	
+	float [] hungerHeuristic_calc(int xx, int yy)
+	{
+		float[] scores = new float[4];
+		scores[0] = scores[1] = scores[2] = scores[3] = 0;
+		
+		int n = shortestPath(xx, yy, mainSnake.foodPoint);
+		if (n != -1)
+			scores[n] = 1.0f;
+		
+		return scores;
+	}
+	
+	float [] isolationHeuristic_calc(int xx, int yy) 
+	{
+		float[] scores = new float[4];
+		scores[0] = scores[1] = scores[2] = scores[3] = 0;
+		
+		Point isolation_position = new Point(0, 0);
+		float isolation_score = -1;
+		
+		for (int i=0; i<mainSnake.boardSize.width; i++) 
+		{
+			for (int j=0; j<mainSnake.boardSize.height; j++)
+			{
+				if (!mainSnake.bakedMap[i][j])
+				{
+					float sum = 0;
+					for(int k=0; k<mainSnake.allSnakes.size(); k++) {
+						if (mainSnake.allSnakes.get(k) != this)
+							sum += Point.distance(i, j, mainSnake.allSnakes.get(k).bodyPoints.get(0).x, mainSnake.allSnakes.get(k).bodyPoints.get(0).y);
+					}
+					if (sum > isolation_score) 
+					{
+						isolation_position = new Point(i, j);
+						isolation_score = sum;
+					}
+				}
+			}
+		}
+		
+		int n = shortestPath(xx, yy, isolation_position);
+		if (n != -1)
+			scores[n] = 1.0f;
+		
+		return scores;
+	}
+	
+	int shortestPath(int xx, int yy, Point target) {
+		
+		boolean[][] movementMap = new boolean[mainSnake.boardSize.width][mainSnake.boardSize.height];
+		movementMap[xx][yy] = true;
+		
+		ArrayList<Point> explore = new ArrayList<Point>();
+		ArrayList<Float> explore_points = new ArrayList<Float>();
+		ArrayList<Integer> explore_type = new ArrayList<Integer>();
+		
+		for(int i=0; i<4; i++) 
+		{
+			int xmod = (int)Math.cos(i/4f * 2 * Math.PI);
+			int ymod = (int)Math.sin(i/4f * 2 * Math.PI);
+			shortestPath_push(xx+xmod, yy+ymod, explore, explore_type, explore_points, movementMap, i, target);				
+		}
+		
+		while(!explore.isEmpty())
+		{
+			float min = Float.MAX_VALUE;
+			int min_index = -1;
+			for(int i=0; i<explore.size(); i++)
+			{
+				if (explore_points.get(i) < min)
+				{
+					min = explore_points.get(i);
+					min_index = i;
+				}
+			}
+			
+			int type = explore_type.remove(min_index);
+			if (explore_points.remove(min_index) == 0)
+				return type;
+			Point current = explore.remove(min_index);
+			xx = current.x;
+			yy = current.y;
+			
+			for(int i=0; i<4; i++) 
+			{
+				int xmod = (int)Math.cos(i/4f * 2 * Math.PI);
+				int ymod = (int)Math.sin(i/4f * 2 * Math.PI);
+				shortestPath_push(xx+xmod, yy+ymod, explore, explore_type, explore_points, movementMap, type, target);				
+			}
+		}
+		return -1;
+	}
+	
+	void shortestPath_push(int xx, int yy, ArrayList<Point> toExplore, ArrayList<Integer> toExplore_type, ArrayList<Float> toExplore_points, boolean[][] movementMap, int type, Point target) 
+	{
+		if (!(mainSnake.bakedMap[xx][yy] == true || movementMap[xx][yy] == true)) {
+			toExplore.add(new Point(xx, yy));
+			toExplore_type.add(type);
+			toExplore_points.add((float)Point.distance(xx, yy, target.x, target.y));
+		}		
+		movementMap[xx][yy] = true;
+	}	
 	
 	float [] wallflowerHeuristic_calc(int xx, int yy) 
 	{
@@ -109,7 +230,6 @@ public class AI_smart extends snakeInstance {
 		Stack<Integer> toExplore_type = new Stack<Integer>();
 		Stack<Point> nextExplore = new Stack<Point>();
 		Stack<Integer> nextExplore_type = new Stack<Integer>();
-		
 		for(int i=0; i<4; i++) 
 		{
 			int xmod = (int)Math.cos(i/4f * 2 * Math.PI);
