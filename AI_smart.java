@@ -63,10 +63,10 @@ public class AI_smart extends snakeInstance {
 		scores[0] = scores[1] = scores[2] = scores[3] = 0;
 		scores[4] = 1;
 		
-		scores[0] = wallflowerHeuristic_recurse(xx+1, yy, movementMap, 0);
-		scores[1] = wallflowerHeuristic_recurse(xx, yy+1, movementMap, 0);
-		scores[2] = wallflowerHeuristic_recurse(xx-1, yy, movementMap, 0);
-		scores[3] = wallflowerHeuristic_recurse(xx, yy-1, movementMap, 0);
+		scores[0] = wallflowerHeuristic_recurse(xx+1, yy, movementMap, 0, 1, 0);
+		scores[1] = wallflowerHeuristic_recurse(xx, yy+1, movementMap, 0, 0, 1);
+		scores[2] = wallflowerHeuristic_recurse(xx-1, yy, movementMap, 0, -1, 0);
+		scores[3] = wallflowerHeuristic_recurse(xx, yy-1, movementMap, 0, 0, -1);
 		
 		for(int i=0; i<4; i++)
 			if (scores[i] > scores[4])
@@ -75,9 +75,13 @@ public class AI_smart extends snakeInstance {
 		return scores;
 	}
 	
-	float wallflowerHeuristic_recurse(int xx, int yy, boolean[][] movementMap, int depth) 
+	float wallflowerHeuristic_recurse(int xx, int yy, boolean[][] movementMap, int depth, int prevx, int prevy) 
 	{
-		if (movementMap[xx][yy] == true || mainSnake.bakedMap[xx][yy] == true || depth >= bodyPoints.size())
+		if ((movementMap[xx][yy] == true || mainSnake.bakedMap[xx][yy] == true))
+			return 0;
+		if (!((mainSnake.bakedMap[xx+1][yy] && (prevx!=-1)) || (mainSnake.bakedMap[xx-1][yy] && (prevx!=1)) 
+				|| (mainSnake.bakedMap[xx][yy+1] && (prevy!=-1)) || (mainSnake.bakedMap[xx][yy-1] && (prevy!=1))
+				|| mainSnake.bakedMap[xx-1][yy-1] || mainSnake.bakedMap[xx+1][yy+1] || mainSnake.bakedMap[xx+1][yy-1] || mainSnake.bakedMap[xx-1][yy+1]))
 			return 0;
 		movementMap[xx][yy] = true;
 		
@@ -86,7 +90,7 @@ public class AI_smart extends snakeInstance {
 		{
 			int xmod = (int)Math.cos(i/4f * 2 * Math.PI);
 			int ymod = (int)Math.sin(i/4f * 2 * Math.PI);
-			sum += wallflowerHeuristic_recurse(xx+xmod, yy+ymod, movementMap, ++depth);
+			sum += wallflowerHeuristic_recurse(xx+xmod, yy+ymod, movementMap, ++depth, xmod, ymod);
 		}
 		return sum;
 	}
