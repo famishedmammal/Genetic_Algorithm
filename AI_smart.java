@@ -21,7 +21,7 @@ public class AI_smart extends snakeInstance {
 		float[] emptinessScores = emptinessHeuristic_calc(xx, yy); // BFS, find "emptiest" area
 		float[] wallflowerScores = wallflowerHeuristic_calc(xx, yy); // DFS, find area best for coiling
 		float[] isolationScores = isolationHeuristic_calc(xx, yy); // A*, find shortest path to tile farthest away from snake heads
-		//float[] repulsionScores = hungerHeuristic_calc(xx, yy); // square root, repulse away from snake heads
+		float[] repulsionScores = repulsionHeuristic_calc(xx, yy); // inverted square root, repulse away from snake heads
 		
 		// Aggressive heuristics
 		float[] hungerScores = hungerHeuristic_calc(xx, yy); // A*, find shortest path to food
@@ -31,45 +31,70 @@ public class AI_smart extends snakeInstance {
 		for(int i=0; i<4; i++) 
 		{
 			scores[i] =
-					((emptinessScores[i]/emptinessScores[4]) * 0.9f) + //0.9
-					((wallflowerScores[i]/wallflowerScores[4]) * 0.1f) + //0.0
-					((isolationScores[i]) * 1.0f) + //1.0
-					((hungerScores[i]) * 0.0f); //0.0
+					((emptinessScores[i]/emptinessScores[4]) * 1.0f) + //0.7
+					((wallflowerScores[i]/wallflowerScores[4]) * 1.0f) + //1.5
+					((isolationScores[i]) * 1.0f) + //0.7
+					((hungerScores[i]) * 1.0f) +
+					((repulsionScores[i]) * -10.0f);
 		}
 		
 		// Determine what to do
-		int toDo = 0;
-		float maxScore = Float.MIN_VALUE;
+		ArrayList<Integer> options = new ArrayList<Integer>();
+		ArrayList<Float> scr = new ArrayList<Float>();
 		for(int i=0; i<4; i++) 
 		{
-			if (scores[i] > maxScore) {
-				maxScore = scores[i];
-				toDo = i;
-			}	
+			options.add(i);
+			scr.add(scores[i]);
 		}
-		switch(toDo) 
+		
+		for(int i=0; i<4; i++) 
 		{
-			case 1:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y+1]) {bodyPoints.get(0).y++; return;} break;
-			case 0:	if (!mainSnake.bakedMap[bodyPoints.get(0).x+1][bodyPoints.get(0).y]) {bodyPoints.get(0).x++; return;} break;
-			case 3:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y-1]) {bodyPoints.get(0).y--; return;} break;
-			case 2:	if (!mainSnake.bakedMap[bodyPoints.get(0).x-1][bodyPoints.get(0).y]) {bodyPoints.get(0).x--; return;} break;
+			int maxIndex = -1;
+			float maxScore = -999999;
+			for(int j=0; j<scr.size(); j++)
+			{
+				if (scr.get(j) > maxScore) {
+					maxScore = scr.get(j);
+					maxIndex = j;
+				}
+			}
+			
+			int toDo = options.remove(maxIndex);
+			scr.remove(maxIndex);
+			
+			switch(toDo) 
+			{
+				case 0:	if (!mainSnake.bakedMap[bodyPoints.get(0).x+1][bodyPoints.get(0).y]) {bodyPoints.get(0).x++; return;} break;
+				case 1:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y+1]) {bodyPoints.get(0).y++; return;} break;
+				case 2:	if (!mainSnake.bakedMap[bodyPoints.get(0).x-1][bodyPoints.get(0).y]) {bodyPoints.get(0).x--; return;} break;
+				case 3:	if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y-1]) {bodyPoints.get(0).y--; return;} break;
+			}
 		}
 		
-		// Last resort
-		System.out.println("(smart) confused!");
-		if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y+1])
-			bodyPoints.get(0).y++;
-		else if (!mainSnake.bakedMap[bodyPoints.get(0).x+1][bodyPoints.get(0).y])
-			bodyPoints.get(0).x++;
-		else if (!mainSnake.bakedMap[bodyPoints.get(0).x][bodyPoints.get(0).y-1])
-			bodyPoints.get(0).y--;
-		else if (!mainSnake.bakedMap[bodyPoints.get(0).x-1][bodyPoints.get(0).y])
-			bodyPoints.get(0).x--;
-		else {
-			System.out.println("(smart) GG");
-			bodyPoints.get(0).x--;
-		}
+		System.out.println("GG");
+		bodyPoints.get(0).x++;
+	}
+	
+	float [] repulsionHeuristic_calc(int xx, int yy)
+	{
+		float[] scores = new float[4];
+		scores[0] = scores[1] = scores[2] = scores[3] = 0;
 		
+		for(int j=0; j<4; j++) 
+		{
+			int xmod = (int)Math.cos(j/4f * 2 * Math.PI);
+			int ymod = (int)Math.sin(j/4f * 2 * Math.PI);
+			
+			for(int i=0; i<mainSnake.allSnakes.size(); i++) 
+			{
+				if (mainSnake.allSnakes.get(i) != this) 
+				{
+					double dist = Point.distance(xx+xmod, yy+ymod, mainSnake.allSnakes.get(i).bodyPoints.get(0).x, mainSnake.allSnakes.get(i).bodyPoints.get(0).y);
+					scores[j] += 1/(dist*dist);
+				}
+			}
+		}
+		return scores;
 	}
 	
 	float [] hungerHeuristic_calc(int xx, int yy)
@@ -137,7 +162,7 @@ public class AI_smart extends snakeInstance {
 		
 		while(!explore.isEmpty())
 		{
-			float min = Float.MAX_VALUE;
+			float min = 9999999;
 			int min_index = -1;
 			for(int i=0; i<explore.size(); i++)
 			{
