@@ -22,7 +22,7 @@ public class mainSnake {
 	
 	public static void main(String[] args) {
 		
-		int renderSpeed = 50;
+		int renderSpeed = 25;
 		int totalEnemies = 3;
 		int respawnTimeMS = 2000;
 		boardSize = new Dimension(20,20);
@@ -34,7 +34,7 @@ public class mainSnake {
 		for(int i=0; i<totalEnemies; i++) 
 			spawnSnake(true);
 		Point spawn = getRandomPos();
-		snakeInstance smart = new AI_smart(spawn.x, spawn.y, new Color(70, 70, 255), 5);
+		snakeInstance smart = new AI_smart(spawn.x, spawn.y, new Color(70, 70, 255), 15);
 		allSnakes.add(smart);
 		
 		while(true)
@@ -76,7 +76,7 @@ public class mainSnake {
 		if (random)
 			spawn = getRandomPos();
 		else
-			spawn = new Point(4,4);
+			spawn = new Point(5,5);
 		snakeInstance naive = new AI_simple(spawn.x, spawn.y, Color.GRAY, 10);
 		allSnakes.add(naive);			
 	}
