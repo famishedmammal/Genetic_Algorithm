@@ -46,7 +46,7 @@ public class AI_smart extends snakeInstance {
 			options.add(i);
 			scr.add(scores[i]);
 		}
-		
+		// Chose best option, then second best, etc
 		for(int i=0; i<4; i++) 
 		{
 			int maxIndex = -1;
