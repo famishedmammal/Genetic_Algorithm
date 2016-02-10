@@ -1,4 +1,4 @@
-public Class Genetics {
+public class Genetics {
 
 
 }
