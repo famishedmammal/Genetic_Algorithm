@@ -19,23 +19,21 @@ public class mainSnake {
 	public static Dimension boardSize;
 	public static Point foodPoint;
 	public static ArrayList<snakeInstance> allSnakes;
+	public static snakeInstance smartSnake;
+	public static Queue<Long> spawns;
 	
 	public static void main(String[] args) {
 		
-		int renderSpeed = 25;
-		int totalEnemies = 3;
+		int renderSpeed = 5;
 		int respawnTimeMS = 2000;
-		boardSize = new Dimension(20,20);
+		boardSize = new Dimension(30,30);
 		windowSize = new Dimension(600, 600);
 		display = new Display();
 		foodPoint = getRandomPos();
 		allSnakes = new ArrayList<snakeInstance>();
-		Queue<Long> spawns = new LinkedList<Long>();
-		for(int i=0; i<totalEnemies; i++) 
-			spawnSnake(true);
-		Point spawn = getRandomPos();
-		snakeInstance smart = new AI_smart(spawn.x, spawn.y, new Color(70, 70, 255), 15);
-		allSnakes.add(smart);
+		spawns = new LinkedList<Long>();
+		respawnAll();
+		
 		
 		while(true)
 		{
@@ -59,15 +57,30 @@ public class mainSnake {
 				allSnakes.get(i).tickSnake();
 			}
 			renderFrame();
+			Genetic_Manager.totalTicks++;
 			for(int i=0; i<allSnakes.size(); i++) {
 				if (allSnakes.get(i).checkAlive() == false) {
-					if (allSnakes.get(i) == smart)
-						return;
-					allSnakes.remove(allSnakes.get(i));
-					spawns.add(System.currentTimeMillis()+respawnTimeMS);
+					if (allSnakes.get(i) == smartSnake) {
+						Genetic_Manager.roundOver();
+					}
+					else
+					{
+						allSnakes.remove(allSnakes.get(i));
+						spawns.add(System.currentTimeMillis()+respawnTimeMS);						
+					}
 				}
 			}
 		}
+	}
+	
+	public static void respawnAll() {
+		allSnakes.clear();
+		for(int i=0; i<10; i++) 
+			spawnSnake(true);
+		Point spawn = getRandomPos();
+		smartSnake = new AI_smart(spawn.x, spawn.y, new Color(70, 70, 255), 15);
+		allSnakes.add(smartSnake);
+		spawns.clear();
 	}
 	
 	public static void spawnSnake(boolean random) 
