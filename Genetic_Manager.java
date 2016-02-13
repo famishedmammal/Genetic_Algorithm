@@ -1,3 +1,4 @@
+
 public class Genetic_Manager {
 
 	//Types
@@ -5,8 +6,9 @@ public class Genetic_Manager {
 	//1 = aggressive AI
 	//2 = randomized AI_smart
 	
-	int tests_perRound = 30;
-	float[][] roundRatios = {{1.0f, 0.0f, 0.0f},
+	public static int maxOperands = 5;
+	public static int tests_perRound = 30;
+	public static float[][] roundRatios = {{1.0f, 0.0f, 0.0f},
 							{0.0f, 1.0f, 0.0f},
 							{1.0f, 0.0f, 1.0f},
 							{0.3f, 0.3f, 0.3f},
@@ -14,12 +16,13 @@ public class Genetic_Manager {
 							{0.0f, 0.5f, 0.5f},
 							{0.5f, 0.5f, 0.0f}};
 	
-	public Genetic_Manager() {
-		
-	}
+	public static int totalTicks = 0;
+	public static int round = 0;
 	
-	public void roundOver() {
+	public static void roundOver() {
+		mainSnake.respawnAll();
 		
+		Genetic_Manager.totalTicks = 0;
 	}
 	
 }
